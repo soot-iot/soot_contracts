@@ -56,14 +56,14 @@ defmodule SootContracts.Publisher do
     case Ash.read(BundleRow, authorize?: false) do
       {:ok, []} -> 1
       {:ok, rows} -> (Enum.map(rows, & &1.version) |> Enum.max()) + 1
-      _ -> 1
+      {:error, error} -> raise error
     end
   end
 
   defp supersede_previous_current do
     case BundleRow.current(authorize?: false) do
       {:ok, %BundleRow{} = row} -> BundleRow.supersede(row, authorize?: false)
-      _ -> :ok
+      {:error, _} -> :ok
     end
   end
 end
