@@ -77,22 +77,30 @@ defmodule SootContracts.Plug.WellKnown do
   end
 
   defp serve_manifest(conn, fingerprint) do
-    case BundleRow.get_by_fingerprint(fingerprint, authorize?: false) do
-      {:ok, %BundleRow{} = row} -> serve_manifest_row(conn, row)
-      {:error, _} -> not_found(conn, "unknown_fingerprint")
+    case fetch_servable(fingerprint) do
+      {:ok, row} -> serve_manifest_row(conn, row)
+      :error -> not_found(conn, "unknown_fingerprint")
     end
   end
 
   defp serve_asset(conn, fingerprint, path) do
-    case BundleRow.get_by_fingerprint(fingerprint, authorize?: false) do
+    case fetch_servable(fingerprint) do
       {:ok, %BundleRow{assets: assets}} ->
         case Map.get(assets, path) do
           nil -> not_found(conn, "unknown_asset")
           body -> send_asset(conn, fingerprint, path, body)
         end
 
-      {:error, _} ->
+      :error ->
         not_found(conn, "unknown_fingerprint")
+    end
+  end
+
+  defp fetch_servable(fingerprint) do
+    case BundleRow.get_by_fingerprint(fingerprint, authorize?: false) do
+      {:ok, %BundleRow{status: :retired}} -> :error
+      {:ok, %BundleRow{} = row} -> {:ok, row}
+      {:error, _} -> :error
     end
   end
 
