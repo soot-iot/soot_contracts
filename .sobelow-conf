@@ -1,0 +1,22 @@
+[
+  verbose: false,
+  private: false,
+  skip: false,
+  router: "",
+  exit: "Low",
+  format: "txt",
+  out: "",
+  threshold: "low",
+  # XSS.SendResp / XSS.ContentType flag the well-known plug's
+  # `send_asset/4`, which writes asset bytes from a signed bundle and
+  # picks a content-type from the path suffix. Both inputs are
+  # operator-controlled (the bundle is built from registered modules
+  # and signed by the deploy's CA) and never come from the request,
+  # so the XSS threat model does not apply.
+  ignore: ["Traversal.FileModule", "XSS.SendResp", "XSS.ContentType"],
+  ignore_files: [],
+  details: nil,
+  all_details: nil,
+  mark_skip_all: nil,
+  clear_skip: nil
+]
