@@ -209,7 +209,13 @@ defmodule SootContracts.Bundle do
   end
 
   defp decode_signature(nil), do: {:error, :unsigned_bundle}
-  defp decode_signature(b64) when is_binary(b64), do: Base.decode64(b64)
+
+  defp decode_signature(b64) when is_binary(b64) do
+    case Base.decode64(b64) do
+      {:ok, _} = ok -> ok
+      :error -> {:error, :invalid_signature}
+    end
+  end
 
   defp public_key_for(%AshPki.CertificateAuthority{certificate_pem: pem}) do
     case X509.Certificate.from_pem(pem) do
