@@ -15,17 +15,19 @@ defmodule SootContracts.Test.Fixtures.Device do
   end
 
   mqtt do
-    qos 1
-    payload_format :json
-    acl :tenant_isolated
+    qos(1)
+    payload_format(:json)
+    acl(:tenant_isolated)
 
-    topic "tenants/:tenant_id/devices/:device_id/cmd",
+    topic("tenants/:tenant_id/devices/:device_id/cmd",
       as: :cmd_in,
       direction: :inbound
+    )
 
-    topic "tenants/:tenant_id/devices/:device_id/up",
+    topic("tenants/:tenant_id/devices/:device_id/up",
       as: :events_out,
       direction: :outbound
+    )
 
     action :reboot, topic: "tenants/:tenant_id/devices/:device_id/cmd/reboot"
   end
@@ -48,14 +50,14 @@ defmodule SootContracts.Test.Fixtures.DeviceShadow do
   end
 
   mqtt_shadow do
-    base "tenants/:tenant_id/devices/:device_id/shadow"
-    as :device_shadow
-    qos 1
-    retain true
-    payload_format :json
+    base("tenants/:tenant_id/devices/:device_id/shadow")
+    as(:device_shadow)
+    qos(1)
+    retain(true)
+    payload_format(:json)
 
-    desired_attributes [:led, :sample_rate]
-    reported_attributes [:led, :sample_rate, :uptime_s]
+    desired_attributes([:led, :sample_rate])
+    reported_attributes([:led, :sample_rate, :uptime_s])
   end
 end
 
@@ -75,8 +77,8 @@ defmodule SootContracts.Test.Fixtures.Vibration do
 
   telemetry_stream do
     name :vibration
-    tenant_scope :per_tenant
-    retention months: 12
+    tenant_scope(:per_tenant)
+    retention(months: 12)
 
     fields do
       field :ts, :timestamp_us, required: true
@@ -88,8 +90,8 @@ defmodule SootContracts.Test.Fixtures.Vibration do
     end
 
     clickhouse do
-      engine "MergeTree"
-      order_by [:tenant_id, :device_id, :ts]
+      engine("MergeTree")
+      order_by([:tenant_id, :device_id, :ts])
     end
   end
 end

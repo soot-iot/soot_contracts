@@ -31,6 +31,9 @@ defmodule SootContracts.CanonicalJSON do
   defp sort_keys(value) when is_list(value), do: Enum.map(value, &sort_keys/1)
   defp sort_keys(%DateTime{} = v), do: DateTime.to_iso8601(v)
   defp sort_keys(%Date{} = v), do: Date.to_iso8601(v)
-  defp sort_keys(value) when is_atom(value) and value not in [nil, true, false], do: Atom.to_string(value)
+
+  defp sort_keys(value) when is_atom(value) and value not in [nil, true, false],
+    do: Atom.to_string(value)
+
   defp sort_keys(value), do: value
 end

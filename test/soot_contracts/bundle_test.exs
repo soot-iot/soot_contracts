@@ -12,13 +12,14 @@ defmodule SootContracts.BundleTest do
 
   describe "assemble/1" do
     test "produces every expected asset path", %{ca: ca} do
-      bundle = Bundle.assemble(
-        mqtt_resources: [Device, DeviceShadow],
-        telemetry_streams: [Vibration],
-        trust_chain: [ca],
-        crl_url: "https://crl.example/root.crl",
-        generated_at: ~U[2026-04-26 12:00:00Z]
-      )
+      bundle =
+        Bundle.assemble(
+          mqtt_resources: [Device, DeviceShadow],
+          telemetry_streams: [Vibration],
+          trust_chain: [ca],
+          crl_url: "https://crl.example/root.crl",
+          generated_at: ~U[2026-04-26 12:00:00Z]
+        )
 
       paths = bundle.assets |> Map.keys() |> Enum.sort()
 
@@ -33,11 +34,12 @@ defmodule SootContracts.BundleTest do
     end
 
     test "produces a stamped ISO datetime in the manifest", %{ca: ca} do
-      bundle = Bundle.assemble(
-        mqtt_resources: [Device],
-        trust_chain: [ca],
-        generated_at: ~U[2026-04-26 12:00:00Z]
-      )
+      bundle =
+        Bundle.assemble(
+          mqtt_resources: [Device],
+          trust_chain: [ca],
+          generated_at: ~U[2026-04-26 12:00:00Z]
+        )
 
       assert bundle.manifest.generated_at == ~U[2026-04-26 12:00:00Z]
     end
@@ -83,11 +85,12 @@ defmodule SootContracts.BundleTest do
     end
 
     test "manifest assets index lists each path with sha256 + size", %{ca: ca} do
-      bundle = Bundle.assemble(
-        mqtt_resources: [Device],
-        trust_chain: [ca],
-        generated_at: ~U[2026-04-26 12:00:00Z]
-      )
+      bundle =
+        Bundle.assemble(
+          mqtt_resources: [Device],
+          trust_chain: [ca],
+          generated_at: ~U[2026-04-26 12:00:00Z]
+        )
 
       Enum.each(bundle.manifest.assets, fn {_path, meta} ->
         assert meta.sha256 =~ ~r/^[0-9a-f]{64}$/
@@ -96,11 +99,12 @@ defmodule SootContracts.BundleTest do
     end
 
     test "crl_url is omitted when not provided", %{ca: ca} do
-      bundle = Bundle.assemble(
-        mqtt_resources: [Device],
-        trust_chain: [ca],
-        generated_at: ~U[2026-04-26 12:00:00Z]
-      )
+      bundle =
+        Bundle.assemble(
+          mqtt_resources: [Device],
+          trust_chain: [ca],
+          generated_at: ~U[2026-04-26 12:00:00Z]
+        )
 
       refute Map.has_key?(bundle.assets, "pki/crl_url.txt")
     end
