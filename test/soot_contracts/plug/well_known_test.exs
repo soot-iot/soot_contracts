@@ -3,7 +3,7 @@ defmodule SootContracts.Plug.WellKnownTest do
   import Plug.Test
   import Plug.Conn
 
-  alias SootContracts.{Bundle, Plug.WellKnown, Publisher}
+  alias SootContracts.{Bundle, BundleRow, Plug.WellKnown, Publisher}
   alias SootContracts.Test.Fixtures.Device
   alias SootContracts.Test.Helpers
 
@@ -125,6 +125,25 @@ defmodule SootContracts.Plug.WellKnownTest do
       conn = run_get("/something/else")
       assert conn.status == 404
       assert Jason.decode!(conn.resp_body)["error"] == "no_route"
+    end
+  end
+
+  describe "retired bundles" do
+    test "manifest endpoint 404s on a retired fingerprint", ctx do
+      {:ok, _retired} = BundleRow.retire(ctx.row, authorize?: false)
+
+      conn = run_get("/.well-known/soot/contract/#{ctx.bundle.manifest.fingerprint}")
+      assert conn.status == 404
+      assert Jason.decode!(conn.resp_body)["error"] == "unknown_fingerprint"
+    end
+
+    test "asset endpoint 404s on a retired fingerprint", ctx do
+      {:ok, _retired} = BundleRow.retire(ctx.row, authorize?: false)
+
+      fp = ctx.bundle.manifest.fingerprint
+      conn = run_get("/.well-known/soot/contract/#{fp}/topics.json")
+      assert conn.status == 404
+      assert Jason.decode!(conn.resp_body)["error"] == "unknown_fingerprint"
     end
   end
 end
