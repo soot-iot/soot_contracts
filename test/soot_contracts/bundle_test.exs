@@ -175,5 +175,59 @@ defmodule SootContracts.BundleTest do
 
       assert {:error, :unsigned_bundle} = Bundle.verify(bundle, ca)
     end
+
+    test "garbage base64 in signature returns :invalid_signature", %{ca: ca} do
+      signed =
+        Bundle.assemble(
+          mqtt_resources: [Device],
+          trust_chain: [ca],
+          generated_at: ~U[2026-04-26 12:00:00Z]
+        )
+        |> Bundle.sign(ca)
+
+      tampered = put_in(signed.manifest.signature, "not-base64-!!")
+      assert {:error, :invalid_signature} = Bundle.verify(tampered, ca)
+    end
+
+    test "an extra asset blob not declared in the manifest fails verify", %{ca: ca} do
+      signed =
+        Bundle.assemble(
+          mqtt_resources: [Device],
+          trust_chain: [ca],
+          generated_at: ~U[2026-04-26 12:00:00Z]
+        )
+        |> Bundle.sign(ca)
+
+      tampered = put_in(signed.assets["extraneous.json"], "{}\n")
+      assert {:error, :extraneous_asset} = Bundle.verify(tampered, ca)
+    end
+
+    test "tampering the manifest body (e.g. fingerprint) fails verify by signature", %{ca: ca} do
+      signed =
+        Bundle.assemble(
+          mqtt_resources: [Device],
+          trust_chain: [ca],
+          generated_at: ~U[2026-04-26 12:00:00Z]
+        )
+        |> Bundle.sign(ca)
+
+      tampered = put_in(signed.manifest.fingerprint, String.duplicate("0", 64))
+      assert {:error, :invalid_signature} = Bundle.verify(tampered, ca)
+    end
+
+    test "non-Software key strategy raises ArgumentError", %{ca: ca} do
+      bundle =
+        Bundle.assemble(
+          mqtt_resources: [Device],
+          trust_chain: [ca],
+          generated_at: ~U[2026-04-26 12:00:00Z]
+        )
+
+      bogus = %{ca | key_strategy: :pkcs11}
+
+      assert_raise ArgumentError, ~r/Software CA key in v0\.1/, fn ->
+        Bundle.sign(bundle, bogus)
+      end
+    end
   end
 end
