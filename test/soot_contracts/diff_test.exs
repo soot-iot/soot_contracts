@@ -1,7 +1,7 @@
 defmodule SootContracts.DiffTest do
   use ExUnit.Case, async: false
 
-  alias SootContracts.{Bundle, Diff}
+  alias SootContracts.{Bundle, Diff, Publisher}
   alias SootContracts.Test.Fixtures.{Device, DeviceShadow}
   alias SootContracts.Test.Helpers
 
@@ -88,5 +88,30 @@ defmodule SootContracts.DiffTest do
     assert diff.added == []
     assert diff.removed == []
     assert diff.changed == []
+  end
+
+  test "BundleRow arguments are normalised the same as in-memory bundles", %{ca: ca} do
+    first_row =
+      Bundle.assemble(
+        mqtt_resources: [Device],
+        trust_chain: [ca],
+        generated_at: ~U[2026-04-26 12:00:00Z]
+      )
+      |> Bundle.sign(ca)
+      |> Publisher.publish!(ca)
+
+    second_row =
+      Bundle.assemble(
+        mqtt_resources: [Device, DeviceShadow],
+        trust_chain: [ca],
+        generated_at: ~U[2026-04-26 13:00:00Z]
+      )
+      |> Bundle.sign(ca)
+      |> Publisher.publish!(ca)
+
+    diff = Diff.between(first_row, second_row)
+    assert diff.before == first_row.fingerprint
+    assert diff.after == second_row.fingerprint
+    assert "topics.json" in Enum.map(diff.changed, & &1.path)
   end
 end
