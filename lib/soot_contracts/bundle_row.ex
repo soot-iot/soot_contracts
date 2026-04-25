@@ -32,7 +32,6 @@ defmodule SootContracts.BundleRow do
     attribute :version, :integer, allow_nil?: false, default: 1, public?: true
     attribute :manifest, :map, allow_nil?: false, public?: true
     attribute :assets, :map, allow_nil?: false, public?: true
-    attribute :signed_by_ca_id, :uuid, public?: true
 
     attribute :status, :atom do
       constraints one_of: [:current, :superseded, :retired]
@@ -43,6 +42,14 @@ defmodule SootContracts.BundleRow do
 
     create_timestamp :inserted_at
     update_timestamp :updated_at
+  end
+
+  relationships do
+    belongs_to :signed_by_ca, AshPki.CertificateAuthority do
+      attribute_writable? true
+      public? true
+      source_attribute :signed_by_ca_id
+    end
   end
 
   identities do
