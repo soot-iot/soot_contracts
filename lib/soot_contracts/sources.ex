@@ -16,7 +16,7 @@ defmodule SootContracts.Sources do
   the orchestrator.
   """
 
-  alias AshMqtt.{BrokerConfig, Resource}
+  alias AshMqtt.BrokerConfig
   alias AshMqtt.Resource.{Action, Topic}
   alias SootTelemetry.Schema.Fingerprint, as: SchemaFingerprint
   alias SootTelemetry.Stream.Info, as: StreamInfo
@@ -149,8 +149,4 @@ defmodule SootContracts.Sources do
       field -> field.name
     end
   end
-
-  # Hint for compile-time pruning; ensures the deps are linked even when
-  # only one path is exercised at runtime.
-  @compile {:no_warn_undefined, [Resource]}
 end

@@ -26,23 +26,16 @@ defmodule Mix.Tasks.Soot.Contracts.Diff do
     Mix.Task.run("app.start")
     {opts, _} = OptionParser.parse!(args, strict: @switches)
 
-    before_row = resolve(:before, opts)
-    after_row = resolve(:after, opts) || Publisher.current()
+    before_row = resolve(opts, :before)
+    after_row = resolve(opts, :after) || Publisher.current()
 
     diff = Diff.between(before_row, after_row)
 
     Mix.shell().info(CanonicalJSON.encode_pretty!(summarise(diff)))
   end
 
-  defp resolve(:before, opts) do
-    case Keyword.get(opts, :before) do
-      nil -> nil
-      fp -> fetch!(fp)
-    end
-  end
-
-  defp resolve(:after, opts) do
-    case Keyword.get(opts, :after) do
+  defp resolve(opts, key) do
+    case Keyword.get(opts, key) do
       nil -> nil
       fp -> fetch!(fp)
     end

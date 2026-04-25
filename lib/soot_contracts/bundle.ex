@@ -129,8 +129,9 @@ defmodule SootContracts.Bundle do
   defp actual_meta(body) when is_binary(body), do: asset_meta(body)
 
   @doc """
-  Re-fingerprint a bundle. Used after an external mutation to detect
-  whether the assets have changed.
+  SHA-256 over the canonical JSON of the per-asset content hashes.
+  Pulled into a public function so callers (and tests) can re-derive
+  the fingerprint from a manifest's `:assets` index.
   """
   @spec compute_fingerprint(%{required(String.t()) => map()}) :: String.t()
   def compute_fingerprint(asset_index) do
