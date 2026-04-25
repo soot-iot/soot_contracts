@@ -89,7 +89,7 @@ defmodule SootContracts.BundleRow do
   end
 
   code_interface do
-    define :create, args: [:fingerprint, :version, :manifest, :assets]
+    define :create, args: [:fingerprint, :version, :manifest, :assets, :signed_by_ca_id]
     define :supersede
     define :retire
     define :get_by_fingerprint, args: [:fingerprint]

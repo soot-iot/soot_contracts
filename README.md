@@ -87,11 +87,15 @@ In production, mount the plug behind `AshPki.Plug.MTLS` so only
 authenticated devices can fetch contracts:
 
 ```elixir
-forward "/.well-known/soot/contract",
-  to: Plug.Builder.compile([
-    {AshPki.Plug.MTLS, [require_known_certificate: true]},
-    SootContracts.Plug.WellKnown
-  ])
+defmodule MyApp.ContractsPipeline do
+  use Plug.Builder
+
+  plug AshPki.Plug.MTLS, require_known_certificate: true
+  plug SootContracts.Plug.WellKnown
+end
+
+# in your router:
+forward "/.well-known/soot/contract", to: MyApp.ContractsPipeline
 ```
 
 ## Diff
@@ -142,13 +146,12 @@ mix soot.contracts.diff \
 mix test
 ```
 
-41 tests cover canonical JSON ordering + atom/datetime handling,
-bundle assembly determinism, fingerprint sensitivity, sign/verify
-roundtrip + tampering rejection (both at the asset-bytes layer and
-the manifest layer) + cross-CA verification rejection,
-publisher idempotence + supersession, every plug branch
-(current manifest 200, historical manifest 200, asset 200 with
-content-type, ETag/304 on both manifest and asset, 404 unknown
-fingerprint, 404 unknown asset, 405 non-GET, 404 unmatched route),
-diff added/removed/changed branches across two-arg combinations
-including `nil`, and both mix tasks end-to-end.
+Tests cover canonical JSON ordering + atom/datetime handling, bundle
+assembly determinism, fingerprint sensitivity, sign/verify roundtrip
++ tampering rejection (both at the asset-bytes layer and the manifest
+layer) + cross-CA verification rejection, publisher idempotence +
+supersession, every plug branch (current manifest 200, historical
+manifest 200, asset 200 with content-type, ETag/304 on both manifest
+and asset, 404 unknown fingerprint, 404 unknown asset, 405 non-GET,
+404 unmatched route), diff added/removed/changed branches across
+two-arg combinations including `nil`, and both mix tasks end-to-end.
