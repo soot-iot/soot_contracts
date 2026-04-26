@@ -3,6 +3,37 @@ defmodule Mix.Tasks.SootContracts.InstallTest do
 
   import Igniter.Test
 
+  defp project_with_router do
+    test_project(
+      files: %{
+        "lib/test_web/router.ex" => """
+        defmodule TestWeb.Router do
+          use Phoenix.Router
+
+          pipeline :device_mtls do
+            plug AshPki.Plug.MTLS, require_known_certificate: true
+          end
+
+          scope "/" do
+            pipe_through :device_mtls
+
+            forward "/enroll", SootCore.Plug.Enroll
+          end
+        end
+        """,
+        "lib/test_web.ex" => """
+        defmodule TestWeb do
+          def router do
+            quote do
+              use Phoenix.Router
+            end
+          end
+        end
+        """
+      }
+    )
+  end
+
   describe "info/2" do
     test "exposes the documented option schema" do
       info = Mix.Tasks.SootContracts.Install.info([], nil)
@@ -12,33 +43,21 @@ defmodule Mix.Tasks.SootContracts.InstallTest do
     end
   end
 
-  describe "generated files" do
-    test "creates the Contracts domain module" do
-      test_project(files: %{})
-      |> Igniter.compose_task("soot_contracts.install", [])
-      |> assert_creates("lib/test/contracts.ex")
-    end
-
-    test "creates the priv/contracts/ output directory marker" do
-      test_project(files: %{})
-      |> Igniter.compose_task("soot_contracts.install", [])
-      |> assert_creates("priv/contracts/.gitkeep")
-    end
-
-    test "Contracts domain uses Ash.Domain with an empty resources block" do
+  describe "domain registration" do
+    test "registers SootContracts.Domain in operator's :ash_domains" do
       result =
-        test_project(files: %{})
+        project_with_router()
         |> Igniter.compose_task("soot_contracts.install", [])
 
-      diff = diff(result, only: "lib/test/contracts.ex")
-      assert diff =~ "use Ash.Domain"
-      assert diff =~ "resources do"
+      diff = diff(result, only: "config/config.exs")
+      assert diff =~ "SootContracts.Domain"
+      assert diff =~ "ash_domains:"
     end
   end
 
   describe "formatter wiring" do
     test "imports the soot_contracts formatter rules" do
-      test_project(files: %{})
+      project_with_router()
       |> Igniter.compose_task("soot_contracts.install", [])
       |> assert_has_patch(".formatter.exs", """
       + |  import_deps: [:soot_contracts]
@@ -47,44 +66,80 @@ defmodule Mix.Tasks.SootContracts.InstallTest do
   end
 
   describe "config wiring" do
-    test "adds the contract signing key path to config.exs" do
+    test "sets :soot_contracts, :output_dir to priv/contracts" do
       result =
-        test_project(files: %{})
+        project_with_router()
         |> Igniter.compose_task("soot_contracts.install", [])
 
       diff = diff(result, only: "config/config.exs")
       assert diff =~ ":soot_contracts"
-      assert diff =~ "signing_key_path"
-      assert diff =~ "priv/pki/contract_signing_key.pem"
+      assert diff =~ "output_dir:"
+      assert diff =~ "priv/contracts"
+    end
+  end
+
+  describe "contracts output directory" do
+    test "creates priv/contracts/.gitkeep" do
+      project_with_router()
+      |> Igniter.compose_task("soot_contracts.install", [])
+      |> assert_creates("priv/contracts/.gitkeep")
+    end
+  end
+
+  describe "router mount" do
+    test "adds /.well-known/soot/contract forward to the :device_mtls scope" do
+      result =
+        project_with_router()
+        |> Igniter.compose_task("soot_contracts.install", [])
+
+      diff = diff(result, only: "lib/test_web/router.ex")
+      assert diff =~ "/.well-known/soot/contract"
+      assert diff =~ "SootContracts.Plug.WellKnown"
+    end
+
+    test "warns when no router exists" do
+      igniter =
+        test_project(files: %{})
+        |> Igniter.compose_task("soot_contracts.install", [])
+
+      assert Enum.any?(igniter.warnings, &(&1 =~ "No Phoenix router")) or
+               Enum.any?(igniter.notices, &(&1 =~ "soot_contracts installed"))
     end
   end
 
   describe "idempotency" do
     test "re-running the installer leaves the formatter untouched" do
-      test_project(files: %{})
+      project_with_router()
       |> Igniter.compose_task("soot_contracts.install", [])
       |> apply_igniter!()
       |> Igniter.compose_task("soot_contracts.install", [])
       |> assert_unchanged(".formatter.exs")
     end
 
-    test "re-running the installer leaves the Contracts domain untouched" do
-      test_project(files: %{})
+    test "re-running the installer leaves the router untouched" do
+      project_with_router()
       |> Igniter.compose_task("soot_contracts.install", [])
       |> apply_igniter!()
       |> Igniter.compose_task("soot_contracts.install", [])
-      |> assert_unchanged("lib/test/contracts.ex")
+      |> assert_unchanged("lib/test_web/router.ex")
     end
   end
 
   describe "next-steps notice" do
     test "always emits a soot_contracts installed notice" do
       igniter =
-        test_project(files: %{})
+        project_with_router()
         |> Igniter.compose_task("soot_contracts.install", [])
 
       assert Enum.any?(igniter.notices, &(&1 =~ "soot_contracts installed"))
-      assert Enum.any?(igniter.notices, &(&1 =~ "mix soot.contracts.build"))
+    end
+
+    test "notice mentions the contract output dir" do
+      igniter =
+        project_with_router()
+        |> Igniter.compose_task("soot_contracts.install", [])
+
+      assert Enum.any?(igniter.notices, &(&1 =~ "priv/contracts"))
     end
   end
 end

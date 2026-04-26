@@ -2,7 +2,7 @@ defmodule Mix.Tasks.SootContracts.Install.Docs do
   @moduledoc false
 
   def short_doc do
-    "Installs the Soot contracts bundle generator into a Phoenix project"
+    "Installs soot_contracts: registers domain, wires /.well-known/soot/contract"
   end
 
   def example do
@@ -13,13 +13,20 @@ defmodule Mix.Tasks.SootContracts.Install.Docs do
     """
     #{short_doc()}
 
-    Generates an empty `Contracts` Ash domain in the operator's
-    project, creates the `priv/contracts/` output directory used by
-    the bundle generator, configures the contract-signing key path,
-    and imports the `soot_contracts` formatter rules. Composed by
-    `mix soot.install`; can also be run standalone.
+    `SootContracts.Domain` ships its `BundleRow` resource as a concrete
+    library module. The installer registers that domain in the
+    operator's `:ash_domains` config rather than generating empty
+    copies.
 
-    See the `UI-SPEC.md` in the `soot` package for the full design.
+    The installer also creates `priv/contracts/` (the bundle output
+    directory used by `mix soot.contracts.build`), seeds the
+    `:soot_contracts, :output_dir` config, and mounts
+    `forward "/.well-known/soot/contract", SootContracts.Plug.WellKnown`
+    inside the `:device_mtls` scope created by `soot_core.install`.
+
+    Composed by `mix soot.install`; can also be run standalone.
+
+    See `GENERATOR-SPEC.md` in the `soot` package for the full design.
 
     ## Example
 
@@ -61,36 +68,35 @@ if Code.ensure_loaded?(Igniter) do
     def igniter(igniter) do
       igniter
       |> Igniter.Project.Formatter.import_dep(:soot_contracts)
-      |> create_contracts_domain()
+      |> register_domain()
+      |> configure_output_dir()
       |> create_contracts_output_dir()
-      |> configure_signing_key_path()
+      |> mount_well_known_route()
       |> note_next_steps()
     end
 
-    defp create_contracts_domain(igniter) do
-      module = Igniter.Project.Module.module_name(igniter, "Contracts")
+    defp register_domain(igniter) do
+      app = Igniter.Project.Application.app_name(igniter)
 
-      Igniter.Project.Module.create_module(
+      Igniter.Project.Config.configure(
         igniter,
-        module,
-        """
-        @moduledoc \"\"\"
-        Ash domain for the operator's contract bundle bookkeeping.
-
-        `soot_contracts` does not require any user-facing Ash
-        resources; this module exists so the bundle generator has a
-        well-known domain to register helpers under and so operators
-        have an obvious extension point if they want to model their
-        own contract metadata as Ash resources.
-
-        The framework does not re-touch this file once generated.
-        \"\"\"
-
-        use Ash.Domain
-
-        resources do
+        "config.exs",
+        app,
+        [:ash_domains],
+        [SootContracts.Domain],
+        updater: fn list ->
+          Igniter.Code.List.prepend_new_to_list(list, SootContracts.Domain)
         end
-        """
+      )
+    end
+
+    defp configure_output_dir(igniter) do
+      Igniter.Project.Config.configure(
+        igniter,
+        "config.exs",
+        :soot_contracts,
+        [:output_dir],
+        "priv/contracts"
       )
     end
 
@@ -103,32 +109,65 @@ if Code.ensure_loaded?(Igniter) do
       )
     end
 
-    defp configure_signing_key_path(igniter) do
-      Igniter.Project.Config.configure(
-        igniter,
-        "config.exs",
-        :soot_contracts,
-        [:signing_key_path],
-        "priv/pki/contract_signing_key.pem"
-      )
+    # Adds `forward "/.well-known/soot/contract", SootContracts.Plug.WellKnown`
+    # inside the `:device_mtls` scope. Idempotent: detects an existing
+    # forward to SootContracts.Plug.WellKnown and leaves the router
+    # alone if found.
+    defp mount_well_known_route(igniter) do
+      {igniter, router} =
+        Igniter.Libs.Phoenix.select_router(
+          igniter,
+          "Which Phoenix router should the /.well-known/soot/contract endpoint be mounted in?"
+        )
+
+      cond do
+        router == nil ->
+          Igniter.add_warning(igniter, """
+          No Phoenix router found. The /.well-known/soot/contract
+          device-facing endpoint was not mounted. After your router is
+          set up, re-run `mix igniter.install soot_contracts`.
+          """)
+
+        well_known_route_present?(igniter, router) ->
+          igniter
+
+        true ->
+          Igniter.Libs.Phoenix.append_to_scope(
+            igniter,
+            "/",
+            ~s|forward "/.well-known/soot/contract", SootContracts.Plug.WellKnown|,
+            router: router,
+            with_pipelines: [:device_mtls]
+          )
+      end
+    end
+
+    defp well_known_route_present?(igniter, router) do
+      {_, _source, zipper} = Igniter.Project.Module.find_module!(igniter, router)
+
+      case Igniter.Code.Common.move_to(zipper, fn z ->
+             Igniter.Code.Function.function_call?(z, :forward, 2) and
+               Igniter.Code.Function.argument_equals?(z, 1, SootContracts.Plug.WellKnown)
+           end) do
+        {:ok, _} -> true
+        :error -> false
+      end
     end
 
     defp note_next_steps(igniter) do
       Igniter.add_notice(igniter, """
       soot_contracts installed.
 
+      `SootContracts.Domain` is registered in `:ash_domains`.
+      `/.well-known/soot/contract` is mounted under the `:device_mtls`
+      pipeline.
+
+      Generated bundles land in `priv/contracts/` (configured via
+      `:soot_contracts, :output_dir`).
+
       Next steps:
 
         mix soot.contracts.build   # render and sign a contract bundle
-
-      Generated bundles land in `priv/contracts/`. The signing key is
-      read from `config :soot_contracts, :signing_key_path` (defaults
-      to `priv/pki/contract_signing_key.pem`); `ash_pki` provisions
-      that key during `mix ash.setup` if it is missing.
-
-      The `Contracts` domain in `lib/<app>/contracts.ex` is the
-      operator-owned extension point — add Ash resources there if you
-      want to model contract metadata in your own database.
       """)
     end
   end
