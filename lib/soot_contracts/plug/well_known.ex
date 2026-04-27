@@ -23,7 +23,7 @@ defmodule SootContracts.Plug.WellKnown do
   @behaviour Plug
   import Plug.Conn
 
-  alias SootContracts.{BundleRow, CanonicalJSON, Publisher}
+  alias SootContracts.{CanonicalJSON, Publisher}
 
   @manifest_prefix "/.well-known/soot/contract"
 
@@ -85,7 +85,7 @@ defmodule SootContracts.Plug.WellKnown do
 
   defp serve_asset(conn, fingerprint, path) do
     case fetch_servable(fingerprint) do
-      {:ok, %BundleRow{assets: assets}} ->
+      {:ok, %{assets: assets}} ->
         case Map.get(assets, path) do
           nil -> not_found(conn, "unknown_asset")
           body -> send_asset(conn, fingerprint, path, body)
@@ -97,14 +97,14 @@ defmodule SootContracts.Plug.WellKnown do
   end
 
   defp fetch_servable(fingerprint) do
-    case BundleRow.get_by_fingerprint(fingerprint, authorize?: false) do
-      {:ok, %BundleRow{status: :retired}} -> :error
-      {:ok, %BundleRow{} = row} -> {:ok, row}
+    case SootContracts.bundle_row().get_by_fingerprint(fingerprint, authorize?: false) do
+      {:ok, %{status: :retired}} -> :error
+      {:ok, %_{} = row} -> {:ok, row}
       {:error, _} -> :error
     end
   end
 
-  defp serve_manifest_row(conn, %BundleRow{manifest: manifest, fingerprint: fp}) do
+  defp serve_manifest_row(conn, %{manifest: manifest, fingerprint: fp}) do
     if etag_matches?(conn, fp) do
       conn |> put_resp_header("etag", quote_etag(fp)) |> send_resp(304, "") |> halt()
     else
