@@ -71,10 +71,10 @@ defmodule SootContracts.MixProject do
   defp deps do
     [
       {:ash, "~> 3.24"},
-      {:ash_pki, path: "../ash_pki"},
-      {:soot_core, path: "../soot_core"},
-      {:ash_mqtt, path: "../ash_mqtt"},
-      {:soot_telemetry, path: "../soot_telemetry"},
+      {:ash_pki, github: "soot-iot/ash_pki", branch: "main", override: true},
+      {:soot_core, github: "soot-iot/soot_core", branch: "main", override: true},
+      {:ash_mqtt, github: "soot-iot/ash_mqtt", branch: "main", override: true},
+      {:soot_telemetry, github: "soot-iot/soot_telemetry", branch: "main", override: true},
       {:plug, "~> 1.19"},
       {:jason, "~> 1.4"},
       {:igniter, "~> 0.6", optional: true},
