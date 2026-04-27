@@ -198,14 +198,15 @@ defmodule SootContracts.Bundle do
   # ─── signing ──────────────────────────────────────────────────────────
 
   defp sign_body(%AshPki.CertificateAuthority{} = ca, body) do
-    case AshPki.key_strategy(ca.key_strategy) do
-      AshPki.KeyStrategy.Software ->
-        {:ok, private} = AshPki.KeyStrategy.Software.private_key(ca.key_descriptor)
-        :public_key.sign(body, :sha256, private)
+    strategy = AshPki.key_strategy(ca.key_strategy)
 
-      _other ->
+    case strategy.sign(ca.key_descriptor, body, digest_alg: :sha256) do
+      {:ok, signature} ->
+        signature
+
+      {:error, reason} ->
         raise ArgumentError,
-              "signing contract bundles requires a Software CA key in v0.1; #{ca.key_strategy} is deferred"
+              "could not sign contract bundle with #{ca.key_strategy} CA: #{inspect(reason)}"
     end
   end
 
