@@ -14,10 +14,8 @@ defmodule SootContracts.Diff do
   output) or a `BundleRow` record (or `nil` for "no previous").
   """
 
-  alias SootContracts.BundleRow
-
   @doc "Compare two bundles. Argument order is `before, after`."
-  @spec between(map() | BundleRow.t() | nil, map() | BundleRow.t() | nil) :: map()
+  @spec between(map() | struct() | nil, map() | struct() | nil) :: map()
   def between(before_arg, after_arg) do
     {before_assets, before_fp} = normalise(before_arg)
     {after_assets, after_fp} = normalise(after_arg)
@@ -58,7 +56,10 @@ defmodule SootContracts.Diff do
 
   defp normalise(nil), do: {%{}, nil}
 
-  defp normalise(%BundleRow{assets: assets, fingerprint: fp}), do: {assets, fp}
-
+  # In-memory bundle: %{manifest: %{fingerprint: ...}, assets: ...}.
   defp normalise(%{manifest: %{fingerprint: fp}, assets: assets}), do: {assets, fp}
+
+  # BundleRow record (default or consumer override): top-level :assets
+  # and :fingerprint. The pattern stays struct-shape-agnostic.
+  defp normalise(%{assets: assets, fingerprint: fp}), do: {assets, fp}
 end

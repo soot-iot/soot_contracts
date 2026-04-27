@@ -17,7 +17,7 @@ defmodule Mix.Tasks.Soot.Contracts.Diff do
 
   use Mix.Task
 
-  alias SootContracts.{BundleRow, CanonicalJSON, Diff, Publisher}
+  alias SootContracts.{CanonicalJSON, Diff, Publisher}
 
   @switches [before: :string, after: :string]
 
@@ -42,8 +42,8 @@ defmodule Mix.Tasks.Soot.Contracts.Diff do
   end
 
   defp fetch!(fp) do
-    case BundleRow.get_by_fingerprint(fp, authorize?: false) do
-      {:ok, %BundleRow{} = row} -> row
+    case SootContracts.bundle_row().get_by_fingerprint(fp, authorize?: false) do
+      {:ok, %_{} = row} -> row
       _ -> Mix.raise("no bundle with fingerprint #{fp}")
     end
   end

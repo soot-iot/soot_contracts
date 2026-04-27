@@ -8,17 +8,20 @@ defmodule SootContracts.Publisher do
   - Marks the previous current row as `:superseded`.
   - Idempotent on fingerprint: a re-publish of the same fingerprint
     returns the existing row.
+
+  The active `BundleRow` resource module is resolved through
+  `SootContracts.bundle_row/0` so consumer overrides registered via
+  `config :soot_contracts, bundle_row: MyApp.BundleRow` are honoured.
   """
 
-  alias SootContracts.BundleRow
-
   @doc "Persist a bundle. The CA is the signer; its id is stamped into `signed_by_ca_id`."
-  @spec publish!(map(), AshPki.CertificateAuthority.t()) :: BundleRow.t()
+  @spec publish!(map(), AshPki.CertificateAuthority.t()) :: struct()
   def publish!(bundle, %AshPki.CertificateAuthority{} = ca) do
+    bundle_row = SootContracts.bundle_row()
     fingerprint = bundle.manifest.fingerprint
 
-    case BundleRow.get_by_fingerprint(fingerprint, authorize?: false) do
-      {:ok, %BundleRow{} = existing} ->
+    case bundle_row.get_by_fingerprint(fingerprint, authorize?: false) do
+      {:ok, %_{} = existing} ->
         existing
 
       {:error, _} ->
@@ -27,7 +30,7 @@ defmodule SootContracts.Publisher do
 
         {:ok, row} =
           Ash.create(
-            BundleRow,
+            bundle_row,
             %{
               fingerprint: fingerprint,
               version: version,
@@ -44,16 +47,16 @@ defmodule SootContracts.Publisher do
   end
 
   @doc "The current bundle row or nil."
-  @spec current() :: BundleRow.t() | nil
+  @spec current() :: struct() | nil
   def current do
-    case BundleRow.current(authorize?: false) do
-      {:ok, %BundleRow{} = row} -> row
+    case SootContracts.bundle_row().current(authorize?: false) do
+      {:ok, %_{} = row} -> row
       _ -> nil
     end
   end
 
   defp next_version do
-    case Ash.read(BundleRow, authorize?: false) do
+    case Ash.read(SootContracts.bundle_row(), authorize?: false) do
       {:ok, []} -> 1
       {:ok, rows} -> (Enum.map(rows, & &1.version) |> Enum.max()) + 1
       {:error, error} -> raise error
@@ -61,8 +64,10 @@ defmodule SootContracts.Publisher do
   end
 
   defp supersede_previous_current do
-    case BundleRow.current(authorize?: false) do
-      {:ok, %BundleRow{} = row} -> BundleRow.supersede(row, authorize?: false)
+    bundle_row = SootContracts.bundle_row()
+
+    case bundle_row.current(authorize?: false) do
+      {:ok, %_{} = row} -> bundle_row.supersede(row, authorize?: false)
       {:error, _} -> :ok
     end
   end
