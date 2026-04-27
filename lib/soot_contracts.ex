@@ -17,5 +17,18 @@ defmodule SootContracts do
     * `SootContracts.Plug.WellKnown` — serve the current bundle.
     * `SootContracts.Diff.between/2` — structured diff between two
       bundles.
+
+  ## Resource overrides
+
+  `BundleRow` ships as an `Ash.Resource` extension under
+  `SootContracts.Resource.BundleRow` plus a thin `Ash.DataLayer.Ets`
+  default at `SootContracts.BundleRow`. Production deployments override
+  with their own AshPostgres-backed module and register via
+  `config :soot_contracts, bundle_row: MyApp.BundleRow`.
   """
+
+  @doc "Configured `BundleRow` resource module."
+  @spec bundle_row() :: module()
+  def bundle_row,
+    do: Application.get_env(:soot_contracts, :bundle_row, SootContracts.BundleRow)
 end

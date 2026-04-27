@@ -1,5 +1,7 @@
 defmodule SootContracts.BundleRow do
   @moduledoc """
+  Default `BundleRow` resource shipped with `soot_contracts`.
+
   An audit / serving row for a published contract bundle.
 
   Stores both the signed manifest (as a map) and the raw asset blobs
@@ -14,85 +16,21 @@ defmodule SootContracts.BundleRow do
 
   Naming: `BundleRow` to leave `SootContracts.Bundle` as the module
   that assembles + signs (in-memory) bundles.
+
+  The schema is provided by the `SootContracts.Resource.BundleRow`
+  extension. This default uses `Ash.DataLayer.Ets`; production
+  deployments override with their own resource module backed by
+  `AshPostgres.DataLayer` and register it via
+  `config :soot_contracts, bundle_row: MyApp.BundleRow`.
   """
 
   use Ash.Resource,
     otp_app: :soot_contracts,
     domain: SootContracts.Domain,
-    data_layer: Ash.DataLayer.Ets
+    data_layer: Ash.DataLayer.Ets,
+    extensions: [SootContracts.Resource.BundleRow]
 
   ets do
     private? false
-  end
-
-  attributes do
-    uuid_primary_key :id
-
-    attribute :fingerprint, :string, allow_nil?: false, public?: true
-    attribute :version, :integer, allow_nil?: false, default: 1, public?: true
-    attribute :manifest, :map, allow_nil?: false, public?: true
-    attribute :assets, :map, allow_nil?: false, public?: true
-
-    attribute :status, :atom do
-      constraints one_of: [:current, :superseded, :retired]
-      default :current
-      allow_nil? false
-      public? true
-    end
-
-    create_timestamp :inserted_at
-    update_timestamp :updated_at
-  end
-
-  relationships do
-    belongs_to :signed_by_ca, AshPki.CertificateAuthority do
-      attribute_writable? true
-      public? true
-      source_attribute :signed_by_ca_id
-    end
-  end
-
-  identities do
-    identity :unique_fingerprint, [:fingerprint], pre_check_with: SootContracts.Domain
-  end
-
-  actions do
-    defaults [
-      :read,
-      :destroy,
-      create: [:fingerprint, :version, :manifest, :assets, :signed_by_ca_id]
-    ]
-
-    update :supersede do
-      accept []
-      require_atomic? false
-      change set_attribute(:status, :superseded)
-    end
-
-    update :retire do
-      accept []
-      require_atomic? false
-      change set_attribute(:status, :retired)
-    end
-
-    read :get_by_fingerprint do
-      argument :fingerprint, :string, allow_nil?: false
-      get? true
-      filter expr(fingerprint == ^arg(:fingerprint))
-    end
-
-    read :current do
-      get? true
-      filter expr(status == :current)
-      prepare build(sort: [version: :desc])
-    end
-  end
-
-  code_interface do
-    define :create, args: [:fingerprint, :version, :manifest, :assets, :signed_by_ca_id]
-    define :supersede
-    define :retire
-    define :get_by_fingerprint, args: [:fingerprint]
-    define :current
   end
 end
