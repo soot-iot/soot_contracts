@@ -20,7 +20,9 @@ defmodule SootContracts.Publisher do
     bundle_row = SootContracts.bundle_row()
     fingerprint = bundle.manifest.fingerprint
 
-    case bundle_row.get_by_fingerprint(fingerprint, actor: SootContracts.Actors.system(:publisher)) do
+    case bundle_row.get_by_fingerprint(fingerprint,
+           actor: SootContracts.Actors.system(:publisher)
+         ) do
       {:ok, %_{} = existing} ->
         existing
 
@@ -67,8 +69,11 @@ defmodule SootContracts.Publisher do
     bundle_row = SootContracts.bundle_row()
 
     case bundle_row.current(actor: SootContracts.Actors.system(:publisher)) do
-      {:ok, %_{} = row} -> bundle_row.supersede(row, actor: SootContracts.Actors.system(:publisher))
-      {:error, _} -> :ok
+      {:ok, %_{} = row} ->
+        bundle_row.supersede(row, actor: SootContracts.Actors.system(:publisher))
+
+      {:error, _} ->
+        :ok
     end
   end
 end
