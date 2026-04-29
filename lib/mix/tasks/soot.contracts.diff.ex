@@ -42,7 +42,9 @@ defmodule Mix.Tasks.Soot.Contracts.Diff do
   end
 
   defp fetch!(fp) do
-    case SootContracts.bundle_row().get_by_fingerprint(fp, authorize?: false) do
+    case SootContracts.bundle_row().get_by_fingerprint(fp,
+           actor: SootContracts.Actors.system(:public_reader)
+         ) do
       {:ok, %_{} = row} -> row
       _ -> Mix.raise("no bundle with fingerprint #{fp}")
     end

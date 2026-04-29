@@ -20,7 +20,7 @@ defmodule SootContracts.Publisher do
     bundle_row = SootContracts.bundle_row()
     fingerprint = bundle.manifest.fingerprint
 
-    case bundle_row.get_by_fingerprint(fingerprint, authorize?: false) do
+    case bundle_row.get_by_fingerprint(fingerprint, actor: SootContracts.Actors.system(:publisher)) do
       {:ok, %_{} = existing} ->
         existing
 
@@ -39,7 +39,7 @@ defmodule SootContracts.Publisher do
               signed_by_ca_id: ca.id
             },
             action: :create,
-            authorize?: false
+            actor: SootContracts.Actors.system(:publisher)
           )
 
         row
@@ -49,14 +49,14 @@ defmodule SootContracts.Publisher do
   @doc "The current bundle row or nil."
   @spec current() :: struct() | nil
   def current do
-    case SootContracts.bundle_row().current(authorize?: false) do
+    case SootContracts.bundle_row().current(actor: SootContracts.Actors.system(:publisher)) do
       {:ok, %_{} = row} -> row
       _ -> nil
     end
   end
 
   defp next_version do
-    case Ash.read(SootContracts.bundle_row(), authorize?: false) do
+    case Ash.read(SootContracts.bundle_row(), actor: SootContracts.Actors.system(:publisher)) do
       {:ok, []} -> 1
       {:ok, rows} -> (Enum.map(rows, & &1.version) |> Enum.max()) + 1
       {:error, error} -> raise error
@@ -66,8 +66,8 @@ defmodule SootContracts.Publisher do
   defp supersede_previous_current do
     bundle_row = SootContracts.bundle_row()
 
-    case bundle_row.current(authorize?: false) do
-      {:ok, %_{} = row} -> bundle_row.supersede(row, authorize?: false)
+    case bundle_row.current(actor: SootContracts.Actors.system(:publisher)) do
+      {:ok, %_{} = row} -> bundle_row.supersede(row, actor: SootContracts.Actors.system(:publisher))
       {:error, _} -> :ok
     end
   end

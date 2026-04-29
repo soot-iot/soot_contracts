@@ -97,7 +97,9 @@ defmodule SootContracts.Plug.WellKnown do
   end
 
   defp fetch_servable(fingerprint) do
-    case SootContracts.bundle_row().get_by_fingerprint(fingerprint, authorize?: false) do
+    case SootContracts.bundle_row().get_by_fingerprint(fingerprint,
+           actor: SootContracts.Actors.system(:public_reader)
+         ) do
       {:ok, %{status: :retired}} -> :error
       {:ok, %_{} = row} -> {:ok, row}
       {:error, _} -> :error
