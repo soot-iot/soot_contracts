@@ -28,9 +28,23 @@ defmodule SootContracts.BundleRow do
     otp_app: :soot_contracts,
     domain: SootContracts.Domain,
     data_layer: Ash.DataLayer.Ets,
+    authorizers: [Ash.Policy.Authorizer],
     extensions: [SootContracts.Resource.BundleRow]
 
   ets do
     private? false
+  end
+
+  # Default policies (POLICY-SPEC §4.1). `:publisher` covers the
+  # internal publishing flow (fingerprint lookup, current,
+  # supersession, create). `:public_reader` covers the well-known
+  # bundle lookup at `/.well-known/soot/contract/...` and the
+  # `mix soot.contracts.diff` task.
+  policies do
+    policy always() do
+      access_type :strict
+      authorize_if actor_attribute_equals(:part, :publisher)
+      authorize_if actor_attribute_equals(:part, :public_reader)
+    end
   end
 end
