@@ -7,6 +7,15 @@ and the project adheres to semantic versioning.
 ## [Unreleased]
 
 ### Added
+- `mix soot_contracts.install` now generates an AshPostgres-backed
+  consumer `BundleRow` resource module under `lib/<app>/bundle_row.ex`
+  and registers it in `config/config.exs` under
+  `:soot_contracts, bundle_row:`. The installer composes
+  `ash_postgres.install` to wire the consumer's Repo and the
+  `:ash_postgres` dep. The library's own concrete default stays on
+  `Ash.DataLayer.Ets` for the soot_contracts test suite; consumer
+  projects always boot against AshPostgres, which is mandatory in the
+  soot stack.
 - `BundleRow` belongs_to `signed_by_ca` relationship (was a bare uuid).
 - Direct resource tests for `BundleRow` covering create, supersede,
   retire, lookups, and the unique-fingerprint identity.
