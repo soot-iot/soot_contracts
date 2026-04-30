@@ -47,4 +47,8 @@ defmodule SootContracts.PoliciesTest do
     assert {:error, %Ash.Error.Forbidden{}} =
              Ash.get(BundleRow, row.id, actor: %SootContracts.Actors.System{part: :stranger})
   end
+
+  test "admin can read", %{row: row} do
+    assert {:ok, ^row} = Ash.get(BundleRow, row.id, actor: Actors.admin())
+  end
 end

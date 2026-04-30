@@ -33,4 +33,18 @@ defmodule SootContracts.Actors do
 
   def system(part, opts) when is_atom(part) and is_list(opts),
     do: %System{part: part, tenant_id: Keyword.get(opts, :tenant_id)}
+
+  @doc """
+  Build a stand-in admin actor for tests.
+
+  BundleRow has no `tenant_id` column in the library default, so the
+  admin policy uses `authorize_if always()` and `tenant_id` is
+  informational only.
+  """
+  @spec admin() :: %{role: :admin}
+  def admin, do: %{role: :admin}
+
+  @spec admin(binary()) :: %{role: :admin, tenant_id: binary()}
+  def admin(tenant_id) when is_binary(tenant_id),
+    do: %{role: :admin, tenant_id: tenant_id}
 end
