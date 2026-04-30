@@ -41,6 +41,10 @@ defmodule SootContracts.BundleRow do
   # bundle lookup at `/.well-known/soot/contract/...` and the
   # `mix soot.contracts.diff` task.
   policies do
+    bypass actor_attribute_equals(:role, :admin) do
+      authorize_if always()
+    end
+
     policy always() do
       access_type :strict
       authorize_if actor_attribute_equals(:part, :publisher)

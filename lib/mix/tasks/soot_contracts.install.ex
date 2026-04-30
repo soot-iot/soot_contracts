@@ -175,6 +175,7 @@ if Code.ensure_loaded?(Igniter) do
         otp_app: :#{otp_app(igniter)},
         domain: SootContracts.Domain,
         data_layer: AshPostgres.DataLayer,
+        authorizers: [Ash.Policy.Authorizer],
         extensions: [SootContracts.Resource.BundleRow]
 
       postgres do
@@ -184,6 +185,19 @@ if Code.ensure_loaded?(Igniter) do
 
       soot_contracts do
         certificate_authority #{inspect(certificate_authority)}
+      end
+
+      # Mirrors `SootContracts.BundleRow`'s default policies (POLICY-SPEC §4.1).
+      policies do
+        bypass actor_attribute_equals(:role, :admin) do
+          authorize_if always()
+        end
+
+        policy always() do
+          access_type :strict
+          authorize_if actor_attribute_equals(:part, :publisher)
+          authorize_if actor_attribute_equals(:part, :public_reader)
+        end
       end
       """
     end

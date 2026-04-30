@@ -235,6 +235,18 @@ defmodule Mix.Tasks.SootContracts.InstallTest do
       assert content =~ "repo(Test.Repo)"
     end
 
+    test "BundleRow module carries authorizer + admin bypass" do
+      result =
+        project_with_router()
+        |> Igniter.compose_task("soot_contracts.install", [])
+
+      content = generated_source(result, @resource_path)
+
+      assert content =~ "authorizers: [Ash.Policy.Authorizer]"
+      assert content =~ "policies do"
+      assert content =~ "bypass actor_attribute_equals(:role, :admin) do"
+    end
+
     test "BundleRow module includes a soot_contracts block referencing Test.CertificateAuthority" do
       result =
         project_with_router()
