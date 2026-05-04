@@ -5,6 +5,8 @@ defmodule SootContracts.Domain do
   use Ash.Domain, otp_app: :soot_contracts, validate_config_inclusion?: false
 
   resources do
+    allow_unregistered? true
+
     resource SootContracts.BundleRow
   end
 end
