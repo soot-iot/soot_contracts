@@ -51,6 +51,15 @@ defmodule SootContracts.Plug.WellKnownTest do
       assert second.resp_body == ""
     end
 
+    test "If-None-Match with unquoted etag returns 200, not 304" do
+      first = run_get("/.well-known/soot/contract")
+      [quoted_etag] = get_resp_header(first, "etag")
+      unquoted = String.trim(quoted_etag, ~s("))
+
+      second = run_get("/.well-known/soot/contract", [{"if-none-match", unquoted}])
+      assert second.status == 200
+    end
+
     test "404 when no current bundle exists" do
       Helpers.reset_ets!()
       conn = run_get("/.well-known/soot/contract")
