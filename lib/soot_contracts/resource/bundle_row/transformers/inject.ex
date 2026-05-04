@@ -112,6 +112,9 @@ defmodule SootContracts.Resource.BundleRow.Transformers.Inject do
          {:ok, dsl_state} <-
            Builder.add_new_action(dsl_state, :update, :supersede,
              accept: [],
+             # require_atomic?: false because the policy authorizer
+             # injects a :before_action hook, which is incompatible
+             # with atomic execution.
              require_atomic?: false,
              changes: [
                Builder.build_action_change(
@@ -122,6 +125,7 @@ defmodule SootContracts.Resource.BundleRow.Transformers.Inject do
          {:ok, dsl_state} <-
            Builder.add_new_action(dsl_state, :update, :retire,
              accept: [],
+             # require_atomic?: false: see :supersede above.
              require_atomic?: false,
              changes: [
                Builder.build_action_change(

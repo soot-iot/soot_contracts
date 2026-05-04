@@ -148,7 +148,7 @@ defmodule SootContracts.Plug.WellKnown do
     quoted = quote_etag(value)
 
     Plug.Conn.get_req_header(conn, "if-none-match")
-    |> Enum.any?(&(&1 == quoted or &1 == value))
+    |> Enum.any?(&(&1 == quoted))
   end
 
   defp quote_etag(value), do: ~s("#{value}")
